@@ -57,9 +57,9 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen text-slate-900">
       {/* Page header */}
-      <div className="max-w-7xl mx-auto px-6 pt-8 pb-6 flex justify-between items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 sm:pt-8 pb-4 sm:pb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-1">Activity Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1">Activity Dashboard</h1>
           <p className="text-slate-500 text-sm">Real-time execution logs from your database.</p>
         </div>
         <button
@@ -70,7 +70,7 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      <main className="max-w-7xl mx-auto px-6 pb-16">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-12 sm:pb-16">
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {stats.map((stat, i) => (
@@ -79,18 +79,18 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.08 }}
-              className="p-6 bg-white/60 backdrop-blur-lg border border-white/70 rounded-2xl shadow-sm"
+              className="p-4 sm:p-6 bg-white/60 backdrop-blur-lg border border-white/70 rounded-2xl shadow-sm"
             >
               <div className="p-2 bg-slate-50 border border-slate-100 rounded-xl w-fit mb-4 shadow-sm">{stat.icon}</div>
               <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">{stat.label}</p>
-              <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-slate-900">{stat.value}</p>
             </motion.div>
           ))}
         </div>
 
         {/* History Table */}
         <section className="bg-white/60 backdrop-blur-lg border border-white/70 rounded-3xl overflow-hidden shadow-sm">
-          <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center">
+          <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-100 flex justify-between items-center">
             <h2 className="text-lg font-bold text-slate-900">Execution Logs</h2>
             <div className="flex gap-2">
               {["All", "Success", "Failed"].map((f) => (
@@ -111,27 +111,27 @@ export default function DashboardPage() {
 
           <div className="overflow-x-auto">
             {loading ? (
-              <div className="p-20 text-center text-slate-400">Loading history...</div>
+              <div className="p-10 sm:p-20 text-center text-slate-400">Loading history...</div>
             ) : (
-              <table className="w-full text-left">
+              <table className="w-full min-w-[640px] text-left">
                 <thead>
                   <tr className="text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-100">
-                    <th className="px-6 py-4">Intent</th>
-                    <th className="px-6 py-4">Agent</th>
-                    <th className="px-6 py-4">Result</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Timestamp</th>
+                    <th className="px-3 sm:px-6 py-3 sm:py-4">Intent</th>
+                    <th className="px-3 sm:px-6 py-3 sm:py-4">Agent</th>
+                    <th className="px-3 sm:px-6 py-3 sm:py-4">Result</th>
+                    <th className="px-3 sm:px-6 py-3 sm:py-4">Status</th>
+                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-right">Timestamp</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredActions.map((action) => (
                     <tr key={action.id} className="group hover:bg-indigo-50/30 transition-colors">
-                      <td className="px-6 py-5">
+                      <td className="px-3 sm:px-6 py-3 sm:py-5">
                         <p className="text-sm font-medium text-slate-700 line-clamp-1">{action.intent_summary}</p>
                       </td>
-                      <td className="px-6 py-5 text-sm text-slate-600">{action.agent_name}</td>
-                      <td className="px-6 py-5 text-xs text-slate-400 italic">{action.result_message}</td>
-                      <td className="px-6 py-5">
+                      <td className="px-3 sm:px-6 py-3 sm:py-5 text-sm text-slate-600">{action.agent_name}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-5 text-xs text-slate-400 italic">{action.result_message}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-5">
                         <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${
                           action.status === "success"
                             ? "bg-green-50 border-green-200 text-green-700"
@@ -140,7 +140,7 @@ export default function DashboardPage() {
                           {action.status}
                         </span>
                       </td>
-                      <td className="px-6 py-5 text-right text-slate-400 text-xs">
+                      <td className="px-3 sm:px-6 py-3 sm:py-5 text-right text-slate-400 text-xs">
                         {new Date(action.executed_at).toLocaleString()}
                       </td>
                     </tr>
@@ -151,7 +151,7 @@ export default function DashboardPage() {
           </div>
 
           {!loading && filteredActions.length === 0 && (
-            <div className="p-20 text-center text-slate-400">
+            <div className="p-10 sm:p-20 text-center text-slate-400">
               <Clock className="w-10 h-10 mx-auto mb-4 opacity-30" />
               <p>No executions found.</p>
             </div>

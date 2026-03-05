@@ -48,7 +48,7 @@ const SwipeCard = ({
       dragConstraints={{ left: 0, right: 0 }}
       onDragEnd={handleDragEnd}
       whileTap={{ scale: isProcessing || showDoubleConfirm ? 1 : 1.05 }}
-      className={`absolute inset-0 w-full h-full backdrop-blur-xl border border-white/60 rounded-3xl p-8 shadow-2xl shadow-slate-200/50 flex flex-col justify-between ${
+      className={`absolute inset-0 w-full h-full backdrop-blur-xl border border-white/60 rounded-3xl p-5 sm:p-8 shadow-2xl shadow-slate-200/50 flex flex-col justify-between ${
         isProcessing ? "cursor-wait" : showDoubleConfirm ? "cursor-default" : "cursor-grab active:cursor-grabbing"
       } touch-none`}
     >
@@ -62,7 +62,7 @@ const SwipeCard = ({
             {Math.round(data.confidence * 100)}% Match
           </div>
         </div>
-        <h3 className="text-2xl font-bold text-slate-900 mb-3 leading-tight">{data.intent_summary}</h3>
+        <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-3 leading-tight">{data.intent_summary}</h3>
         <div className="mb-4">
           <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-1">
             <span className="text-slate-400">Confidence</span>
@@ -77,7 +77,7 @@ const SwipeCard = ({
         </div>
         <div className="bg-indigo-50/80 border border-indigo-100 rounded-2xl p-5 mb-6">
           <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-500 mb-2">Suggested Action</p>
-          <p className="text-slate-800 text-lg font-semibold">{data.proposed_action}</p>
+          <p className="text-slate-800 text-base sm:text-lg font-semibold">{data.proposed_action}</p>
         </div>
         <div className="space-y-2">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Why this action?</p>
@@ -246,10 +246,10 @@ export default function SwipeDeck() {
     setPendingConfirm(false);
   };
 
-  if (loading) return <div className="h-[650px] flex items-center justify-center text-slate-400 text-sm">Loading Intents...</div>;
+  if (loading) return <div className="h-[560px] sm:h-[650px] flex items-center justify-center text-slate-400 text-sm">Loading Intents...</div>;
 
   return (
-    <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto p-4 h-[650px]">
+    <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto p-3 sm:p-4 h-[560px] sm:h-[650px]">
       <div className="relative w-full h-full perspective-1000">
         <AnimatePresence>
           {cards.length > 0 ? (

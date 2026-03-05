@@ -28,7 +28,7 @@ export default function Home() {
   return (
     <div className="min-h-screen text-slate-900 font-sans selection:bg-indigo-200/60">
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-6 overflow-hidden">
+      <section className="relative pt-24 sm:pt-32 pb-14 sm:pb-20 px-6 overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-200/60 via-violet-100/30 to-transparent -z-10 blur-3xl" />
         <div className="max-w-7xl mx-auto text-center">
           <motion.div
@@ -42,7 +42,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-br from-slate-900 via-indigo-800 to-violet-700"
+            className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-br from-slate-900 via-indigo-800 to-violet-700"
           >
             Turn Your Intent Into <br /> Action Instantly
           </motion.h1>
@@ -50,7 +50,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-lg md:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed"
+            className="text-base sm:text-lg md:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed"
           >
             AI understands your emails, reminders, and context, and proposes intelligent actions executed by specialized agents.
           </motion.p>
@@ -77,9 +77,9 @@ export default function Home() {
       </section>
 
       {/* How It Works */}
-      <section className="py-24 px-6">
+      <section className="py-14 md:py-24 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10 md:mb-16">
             <h2 className="text-3xl font-bold mb-3 text-slate-900">The Action Pipeline</h2>
             <p className="text-slate-500">Four steps from raw context to executed action.</p>
           </div>
@@ -110,9 +110,9 @@ export default function Home() {
       </section>
 
       {/* Example Intent Feed */}
-      <section className="py-24 px-6">
+      <section className="py-14 md:py-24 px-4 sm:px-6">
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10 md:mb-16">
             <h2 className="text-3xl font-bold mb-3 text-slate-900">Intent Feed</h2>
             <p className="text-slate-500">Seamless transformations happening in real-time.</p>
           </div>
@@ -124,14 +124,14 @@ export default function Home() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                className="flex items-center justify-between p-6 bg-white/60 backdrop-blur-lg border border-white/70 rounded-2xl hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-50/80 transition-all shadow-sm"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 sm:p-6 bg-white/60 backdrop-blur-lg border border-white/70 rounded-2xl hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-50/80 transition-all shadow-sm"
               >
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl shadow-sm">{intent.icon}</div>
                   <span className="font-medium text-slate-700">{intent.from}</span>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-300" />
-                <div className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-full text-sm font-semibold border border-indigo-100 shadow-sm">
+                <ArrowRight className="w-4 h-4 text-slate-300 hidden sm:block" />
+                <div className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-full text-sm font-semibold border border-indigo-100 shadow-sm self-start sm:self-auto">
                   {intent.to}
                 </div>
               </motion.div>
@@ -141,9 +141,9 @@ export default function Home() {
       </section>
 
       {/* Agent Marketplace */}
-      <section id="agents" className="py-24 px-6">
+      <section id="agents" className="py-14 md:py-24 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-end mb-16">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 mb-10 md:mb-16">
             <div>
               <h2 className="text-3xl font-bold mb-3 text-slate-900">Agent Marketplace</h2>
               <p className="text-slate-500">Deploy specialized AI agents for any task.</p>
@@ -157,7 +157,7 @@ export default function Home() {
               <motion.div 
                 key={idx}
                 whileHover={{ scale: 1.03, y: -4 }}
-                className="p-8 bg-white/60 backdrop-blur-lg border border-white/70 rounded-3xl group cursor-pointer shadow-sm hover:shadow-lg hover:shadow-slate-200/60 transition-all"
+                className="p-6 sm:p-8 bg-white/60 backdrop-blur-lg border border-white/70 rounded-3xl group cursor-pointer shadow-sm hover:shadow-lg hover:shadow-slate-200/60 transition-all"
               >
                 <div className="mb-6 transform group-hover:scale-110 transition-transform">{agent.icon}</div>
                 <h3 className="text-lg font-bold mb-2 text-slate-900">{agent.name}</h3>
