@@ -47,10 +47,12 @@ const SwipeCard = ({
   data,
   active,
   onSwipe,
+  isProcessing,
 }: {
   data: IntentCardData;
   active: boolean;
   onSwipe: (direction: "left" | "right") => void;
+  isProcessing: boolean;
 }) => {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-25, 25]);
@@ -62,6 +64,7 @@ const SwipeCard = ({
   );
 
   const handleDragEnd = (_: any, info: any) => {
+    if (isProcessing) return;
     if (info.offset.x > 100) {
       onSwipe("right");
     } else if (info.offset.x < -100) {
@@ -72,11 +75,13 @@ const SwipeCard = ({
   return (
     <motion.div
       style={{ x, rotate, opacity, backgroundColor: bg }}
-      drag={active ? "x" : false}
+      drag={active && !isProcessing ? "x" : false}
       dragConstraints={{ left: 0, right: 0 }}
       onDragEnd={handleDragEnd}
-      whileTap={{ scale: 1.05 }}
-      className="absolute inset-0 w-full h-full bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-2xl flex flex-col justify-between cursor-grab active:cursor-grabbing touch-none"
+      whileTap={{ scale: isProcessing ? 1 : 1.05 }}
+      className={`absolute inset-0 w-full h-full bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-2xl flex flex-col justify-between ${
+        isProcessing ? "cursor-wait opacity-50" : "cursor-grab active:cursor-grabbing"
+      } touch-none`}
     >
       <div>
         <div className="flex justify-between items-start mb-6">
@@ -108,20 +113,32 @@ const SwipeCard = ({
         </div>
       </div>
 
-      <div className="flex justify-between items-center text-slate-500 text-sm font-medium">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-red-500">
-            <X className="w-4 h-4" />
-          </div>
-          Swipe Left to Reject
+      {isProcessing ? (
+        <div className="flex items-center justify-center gap-3 text-indigo-400 font-medium">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+          >
+            <RotateCcw className="w-5 h-5" />
+          </motion.div>
+          Processing Intent...
         </div>
-        <div className="flex items-center gap-2 text-right">
-          Swipe Right to Approve
-          <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-green-500">
-            <Check className="w-4 h-4" />
+      ) : (
+        <div className="flex justify-between items-center text-slate-500 text-sm font-medium">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-red-500">
+              <X className="w-4 h-4" />
+            </div>
+            Swipe Left to Reject
+          </div>
+          <div className="flex items-center gap-2 text-right">
+            Swipe Right to Approve
+            <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-green-500">
+              <Check className="w-4 h-4" />
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </motion.div>
   );
 };
@@ -129,12 +146,52 @@ const SwipeCard = ({
 export default function SwipeDeck() {
   const [cards, setCards] = useState<IntentCardData[]>(MOCK_INTENTS);
   const [history, setHistory] = useState<IntentCardData[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
 
-  const handleSwipe = (direction: "left" | "right") => {
+  const showToast = (message: string, type: "success" | "info" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleSwipe = async (direction: "left" | "right") => {
     const swipedCard = cards[cards.length - 1];
+
+    if (direction === "right") {
+      setIsProcessing(true);
+      try {
+        // 1. Route to best agent
+        const routeRes = await fetch("/api/route-intent", {
+          method: "POST",
+          body: JSON.stringify({ intent_summary: swipedCard.intent_summary }),
+        });
+        const { agents } = await routeRes.json();
+        const bestAgent = agents[0];
+
+        if (bestAgent) {
+          showToast(`Executing via ${bestAgent.name}...`, "info");
+
+          // 2. Execute agent
+          const executeRes = await fetch("/api/execute-agent", {
+            method: "POST",
+            body: JSON.stringify({ agent_name: bestAgent.name, intent: swipedCard }),
+          });
+          const result = await executeRes.json();
+
+          if (result.status === "success") {
+            showToast(result.message, "success");
+          }
+        }
+      } catch (error) {
+        console.error("Execution failed:", error);
+        showToast("Failed to execute action", "info");
+      } finally {
+        setIsProcessing(false);
+      }
+    }
+
     setHistory([...history, swipedCard]);
     setCards((prev) => prev.slice(0, -1));
-    console.log(`Swiped ${direction} on:`, swipedCard.intent_summary);
   };
 
   const undo = () => {
@@ -194,6 +251,29 @@ export default function SwipeDeck() {
           Undo
         </button>
       </div>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 z-50 border ${
+              toast.type === "success"
+                ? "bg-green-500/10 border-green-500/20 text-green-400"
+                : "bg-indigo-500/10 border-indigo-500/20 text-indigo-400"
+            }`}
+          >
+            {toast.type === "success" ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <RotateCcw className="w-4 h-4 animate-spin" />
+            )}
+            <span className="font-medium">{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
