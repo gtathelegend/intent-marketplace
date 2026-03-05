@@ -1,4 +1,4 @@
-import { groq } from "@/lib/groq";
+import { groq } from "@/src/lib/groq";
 
 /**
  * Interface for the expected JSON response from the LLM

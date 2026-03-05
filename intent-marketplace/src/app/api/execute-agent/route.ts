@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CalendarAgent } from "@/src/agents/calendarAgent";
+import { EmailAgent } from "@/src/agents/emailAgent";
+import { TaskAgent } from "@/src/agents/taskAgent";
 import { logAction } from "@/src/lib/db";
 
 export async function POST(req: NextRequest) {
@@ -14,12 +16,15 @@ export async function POST(req: NextRequest) {
 
     let result;
 
-    // In a real app, this would dynamically route to the correct agent module
     if (agent_name.toLowerCase().includes("calendar")) {
       result = await CalendarAgent.execute(intent);
+    } else if (agent_name.toLowerCase().includes("email")) {
+      result = await EmailAgent.execute(intent);
+    } else if (agent_name.toLowerCase().includes("task")) {
+      result = await TaskAgent.execute(intent);
     } else {
-      // Mock response for other agents
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Generic fallback for Research Agent / unknown agents
+      await new Promise((resolve) => setTimeout(resolve, 800));
       result = {
         status: "success",
         message: `Executed via ${agent_name}: ${intent.intent_summary || intent}`,

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { RotateCcw, Check, X, Info, Zap, ArrowRight, AlertTriangle, ShieldCheck } from "lucide-react";
+import { appendActionHistory } from "@/src/lib/actionHistory";
 
 interface IntentCardData {
   id: string;
@@ -196,6 +197,16 @@ export default function SwipeDeck() {
         const result = await executeRes.json();
         if (result.status === "success") {
           showToast(result.message, "success");
+          // Persist executed action to localStorage for dashboard history
+          appendActionHistory({
+            id: card.id + "-" + Date.now(),
+            intent: card.intent_summary,
+            agent: bestAgent.name,
+            timestamp: new Date().toISOString(),
+            status: "Approved",
+            source: card.source,
+            confidence: card.confidence,
+          });
         }
       }
     } catch (error) {
@@ -214,6 +225,17 @@ export default function SwipeDeck() {
         return;
       }
       await executeAction(swipedCard);
+    } else {
+      // Persist rejected action to history
+      appendActionHistory({
+        id: swipedCard.id + "-" + Date.now(),
+        intent: swipedCard.intent_summary,
+        agent: "None",
+        timestamp: new Date().toISOString(),
+        status: "Rejected",
+        source: swipedCard.source,
+        confidence: swipedCard.confidence,
+      });
     }
 
     setHistory([...history, swipedCard]);

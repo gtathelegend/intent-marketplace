@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   CheckCircle2, 
   XCircle, 
@@ -16,6 +16,8 @@ import {
   Search
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { getActionHistory } from "@/src/lib/actionHistory";
+import type { ActionHistoryEntry } from "@/src/types/intent";
 
 // Mock data for the dashboard
 const ACTION_HISTORY = [
@@ -75,10 +77,25 @@ const STATS = [
 
 export default function DashboardPage() {
   const [filter, setFilter] = useState("All");
+  const [liveHistory, setLiveHistory] = useState<ActionHistoryEntry[]>([]);
 
-  const filteredActions = filter === "All" 
-    ? ACTION_HISTORY 
-    : ACTION_HISTORY.filter(a => a.status === filter);
+  // Merge localStorage action history with static seed data on the client
+  useEffect(() => {
+    setLiveHistory(getActionHistory());
+  }, []);
+
+  // Combine live (real) history on top of static seed entries; deduplicate by id
+  const mergedHistory = [
+    ...liveHistory,
+    ...ACTION_HISTORY.filter(
+      (seed) => !liveHistory.some((live) => live.id === seed.id)
+    ),
+  ] as ActionHistoryEntry[];
+
+  const filteredActions =
+    filter === "All"
+      ? mergedHistory
+      : mergedHistory.filter((a) => a.status === filter);
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex">
@@ -256,7 +273,7 @@ export default function DashboardPage() {
           )}
 
           <div className="p-6 border-t border-white/5 bg-slate-900/50 flex justify-between items-center text-xs text-slate-500">
-            <p>Showing {filteredActions.length} of {ACTION_HISTORY.length} entries</p>
+            <p>Showing {filteredActions.length} of {mergedHistory.length} entries</p>
             <div className="flex gap-2">
               <button className="px-3 py-1 rounded-lg border border-white/10 hover:bg-white/5 disabled:opacity-30 transition-colors" disabled>Previous</button>
               <button className="px-3 py-1 rounded-lg border border-white/10 hover:bg-white/5 disabled:opacity-30 transition-colors" disabled>Next</button>
