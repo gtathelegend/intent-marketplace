@@ -45,7 +45,7 @@ export default function DashboardPage() {
 
   const filteredActions = filter === "All" 
     ? executions 
-    : executions.filter(a => a.status === (filter === "Approved" ? "success" : "failed"));
+    : executions.filter(a => a.status === (filter === "Success" ? "success" : "failed"));
 
   const stats = [
     { label: "Total Executions", value: executions.length.toString(), icon: <Zap className="w-5 h-5 text-indigo-400" /> },
