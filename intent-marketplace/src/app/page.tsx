@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { ArrowRight, Mail, Calendar, Slack, CheckCircle, Zap, Shield, Sparkles } from "lucide-react";
 
 export default function Home() {
@@ -51,12 +52,18 @@ export default function Home() {
             transition={{ delay: 0.2 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <button className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-full font-semibold transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
-              Discover Agents <ArrowRight className="w-4 h-4" />
-            </button>
-            <button className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full font-semibold transition-all">
-              View My Intents
-            </button>
+            <button
+                onClick={() => document.getElementById("agents")?.scrollIntoView({ behavior: "smooth" })}
+                className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-full font-semibold transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+              >
+                Discover Agents <ArrowRight className="w-4 h-4" />
+              </button>
+              <Link
+                href="/intents"
+                className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full font-semibold transition-all text-center"
+              >
+                View My Intents
+              </Link>
           </motion.div>
         </div>
       </section>
@@ -120,7 +127,7 @@ export default function Home() {
       </section>
 
       {/* Agent Marketplace */}
-      <section className="py-24 px-6 bg-slate-900/50">
+      <section id="agents" className="py-24 px-6 bg-slate-900/50">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-end mb-16">
             <div>

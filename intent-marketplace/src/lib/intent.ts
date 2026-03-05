@@ -4,11 +4,12 @@ import { groq } from "@/src/lib/groq";
  * Interface for the expected JSON response from the LLM
  */
 export interface IntentExtractionResponse {
+  id?: string; // Database ID
   intent_summary: string;
   entities: string[];
   possible_actions: string[];
   confidence: number;
-  reasoning: string; // Added reasoning for the safety layer
+  reasoning: string;
 }
 
 /**

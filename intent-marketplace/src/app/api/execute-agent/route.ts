@@ -4,6 +4,10 @@ import { EmailAgent } from "@/src/agents/emailAgent";
 import { TaskAgent } from "@/src/agents/taskAgent";
 import { logAction } from "@/src/lib/db";
 
+/**
+ * POST: Execute an agent on an intent.
+ * Body: { agent_name: string, intent: IntentCardData | string }
+ */
 export async function POST(req: NextRequest) {
   try {
     const { agent_name, intent } = await req.json();
@@ -15,7 +19,6 @@ export async function POST(req: NextRequest) {
     console.log(`[ExecuteAPI] Routing to ${agent_name}...`);
 
     let result;
-
     if (agent_name.toLowerCase().includes("calendar")) {
       result = await CalendarAgent.execute(intent);
     } else if (agent_name.toLowerCase().includes("email")) {
@@ -23,21 +26,19 @@ export async function POST(req: NextRequest) {
     } else if (agent_name.toLowerCase().includes("task")) {
       result = await TaskAgent.execute(intent);
     } else {
-      // Generic fallback for Research Agent / unknown agents
       await new Promise((resolve) => setTimeout(resolve, 800));
       result = {
         status: "success",
-        message: `Executed via ${agent_name}: ${intent.intent_summary || intent}`,
+        message: `Executed via ${agent_name}: ${intent.intent_summary ?? intent}`,
       };
     }
 
-    // Safety Layer: Log the action in the "database"
     await logAction({
-      intent_id: intent.id || "manual",
-      agent_name: agent_name,
-      intent_summary: intent.intent_summary || "Unknown",
-      action_status: result.status,
-      confidence: intent.confidence || 0,
+      agent_name,
+      intent_summary: intent.intent_summary ?? String(intent),
+      status: result.status === "success" ? "success" : "failed",
+      result_message: result.message,
+      source_text: intent.source ?? "",
     });
 
     return NextResponse.json(result);
@@ -46,3 +47,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
