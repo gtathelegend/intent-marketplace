@@ -77,3 +77,44 @@ export async function getExecutions(): Promise<ExecutionLog[]> {
   return result.rows;
 }
 
+// ---------------------------------------------------------------------------
+// Raw event log — persists every incoming POST /api/events payload.
+// ---------------------------------------------------------------------------
+
+export interface RawEventLog {
+  id: string;
+  source: string;
+  text: string;
+  status: "pending" | "processed" | "failed";
+  intent_id: string | null;
+  received_at: string;
+}
+
+export async function logEvent(
+  source: string,
+  text: string
+): Promise<RawEventLog> {
+  const row = await db.findOne<RawEventLog>(
+    `INSERT INTO events (source, text)
+     VALUES ($1, $2)
+     RETURNING id, source, text, status, intent_id, received_at::text AS received_at`,
+    [source, text]
+  );
+  console.log("[DB] Raw event logged:", row?.id);
+  return row!;
+}
+
+export async function markEventProcessed(
+  eventId: string,
+  intentId: string
+): Promise<void> {
+  await db.query(
+    `UPDATE events SET status = 'processed', intent_id = $1 WHERE id = $2`,
+    [intentId, eventId]
+  );
+}
+
+export async function markEventFailed(eventId: string): Promise<void> {
+  await db.query(`UPDATE events SET status = 'failed' WHERE id = $1`, [eventId]);
+}
+

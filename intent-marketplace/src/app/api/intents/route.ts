@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
+import { getPendingIntents } from "@/src/lib/intentEngine";
 
-// Mock intent cards — replace with real DB query once a database is connected.
-const MOCK_CARDS = [
+export const dynamic = "force-dynamic";
+
+// Fallback cards used when no DB intents exist yet (fresh deployment / empty table)
+const FALLBACK_CARDS = [
   {
     id: "1",
     intent_summary: "Meeting request from Alex regarding Q1 goals",
@@ -29,5 +32,25 @@ const MOCK_CARDS = [
 ];
 
 export async function GET() {
-  return NextResponse.json({ cards: MOCK_CARDS });
+  try {
+    const intents = await getPendingIntents();
+
+    if (intents.length === 0) {
+      return NextResponse.json({ cards: FALLBACK_CARDS });
+    }
+
+    const cards = intents.map((intent) => ({
+      id:              intent.id,
+      intent_summary:  intent.intent_summary,
+      proposed_action: intent.possible_actions[0] ?? intent.intent_summary,
+      confidence:      intent.confidence,
+      reasoning:       intent.reasoning,
+      source:          intent.source,
+    }));
+
+    return NextResponse.json({ cards });
+  } catch (err) {
+    console.error("[GET /api/intents] DB error — falling back to mock data:", err);
+    return NextResponse.json({ cards: FALLBACK_CARDS });
+  }
 }

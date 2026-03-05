@@ -100,6 +100,10 @@ const SwipeCard = ({
   );
 };
 
+/** UUID v4 pattern — distinguishes real DB intents from fallback mock IDs */
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default function SwipeDeck() {
   const [cards, setCards] = useState<IntentCardData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,8 +124,33 @@ export default function SwipeDeck() {
     }
   };
 
+  // Initial load
   useEffect(() => {
     fetchIntents();
+  }, []);
+
+  // Real-time: push new intents from the event worker via SSE
+  useEffect(() => {
+    const evtSource = new EventSource("/api/intents/stream");
+
+    evtSource.onmessage = (e) => {
+      try {
+        const card: IntentCardData = JSON.parse(e.data);
+        setCards((prev) => {
+          // Avoid duplicates
+          if (prev.some((c) => c.id === card.id)) return prev;
+          return [card, ...prev];
+        });
+      } catch {
+        // ignore malformed SSE frames
+      }
+    };
+
+    evtSource.onerror = () => {
+      // Browser will auto-reconnect; no extra handling needed
+    };
+
+    return () => evtSource.close();
   }, []);
 
   const showToast = (message: string, type: "success" | "info" = "success") => {
@@ -138,36 +167,50 @@ export default function SwipeDeck() {
         setPendingConfirm(true);
         return;
       }
-      
+
       setIsProcessing(true);
       setPendingConfirm(false);
       try {
-        // 1. Update status to approved
-        await fetch(`/api/intents/${swipedCard.id}`, {
+        if (UUID_RE.test(swipedCard.id)) {
+          // ── New path: DB-backed intent ──────────────────────────────────
+          showToast("Processing intent…", "info");
+          const executeRes = await fetch("/api/execute", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ intent_id: swipedCard.id }),
+          });
+          const result = await executeRes.json();
+          if (result.status === "success") {
+            showToast(result.message ?? "Action completed", "success");
+          } else {
+            showToast(result.message ?? "Action failed", "info");
+          }
+        } else {
+          // ── Legacy path: mock / fallback cards ─────────────────────────
+          await fetch(`/api/intents/${swipedCard.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ status: "approved" }),
-        });
+          });
 
-        // 2. Route to best agent
-        const routeRes = await fetch("/api/route-intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ intent_summary: swipedCard.intent_summary }),
-        });
-        const { agents } = await routeRes.json();
-        const bestAgent = agents[0];
-
-        if (bestAgent) {
-          showToast(`Executing via ${bestAgent.name}...`, "info");
-          // 3. Execute agent
-          const executeRes = await fetch("/api/execute-agent", {
+          const routeRes = await fetch("/api/route-intent", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ agent_name: bestAgent.name, intent: swipedCard }),
+            body: JSON.stringify({ intent_summary: swipedCard.intent_summary }),
           });
-          const result = await executeRes.json();
-          if (result.status === "success") showToast(result.message, "success");
+          const { agents } = await routeRes.json();
+          const bestAgent = agents[0];
+
+          if (bestAgent) {
+            showToast(`Executing via ${bestAgent.name}…`, "info");
+            const executeRes = await fetch("/api/execute-agent", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ agent_name: bestAgent.name, intent: swipedCard }),
+            });
+            const result = await executeRes.json();
+            if (result.status === "success") showToast(result.message, "success");
+          }
         }
       } catch {
         showToast("Failed to process action", "info");
@@ -175,16 +218,16 @@ export default function SwipeDeck() {
         setIsProcessing(false);
       }
     } else {
-        // Handle rejection
-        try {
-            await fetch(`/api/intents/${swipedCard.id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: "rejected" }),
-            });
-        } catch (e) {
-            console.error("Rejection failed:", e);
-        }
+      // Swipe left — reject
+      try {
+        await fetch(`/api/intents/${swipedCard.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "rejected" }),
+        });
+      } catch (e) {
+        console.error("Rejection failed:", e);
+      }
     }
 
     setCards((prev) => prev.slice(0, -1));
