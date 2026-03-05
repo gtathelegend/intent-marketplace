@@ -1,0 +1,6 @@
+{
+  "installCommand": "cd intent-marketplace && npm install",
+  "buildCommand": "cd intent-marketplace && npm run build",
+  "outputDirectory": "intent-marketplace/.next",
+  "framework": "nextjs"
+}
