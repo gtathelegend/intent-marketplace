@@ -1,8 +1,19 @@
 import { NextResponse } from "next/server";
-import { eventQueue } from "@/src/lib/queue";
-import { startWorker } from "@/src/workers/eventWorker";
+import { enqueueEvent, queueLength } from "@/src/lib/queue";
 import { logEvent } from "@/src/lib/db";
 
+/**
+ * POST /api/events
+ * Body: { source: string, text: string }
+ *
+ * Pipeline:
+ *  1. Validate input
+ *  2. Persist raw event to the `events` table (status = 'pending')
+ *  3. Push into Redis queue for the standalone worker to consume
+ *
+ * The worker (npm run worker) picks up the event, calls Groq, stores the
+ * resulting intent, and broadcasts via Socket.IO + SSE.
+ */
 export async function POST(request: Request) {
   let body: unknown;
   try {
@@ -21,18 +32,30 @@ export async function POST(request: Request) {
     );
   }
 
-  // 1. Persist raw event to DB immediately
+  // 1. Log raw event to DB immediately (status = 'pending')
   const rawEvent = await logEvent(source, text);
 
-  // 2. Ensure worker is running (fallback if instrumentation hook didn't fire)
-  startWorker();
+  // 2. Push to Redis for async processing by the standalone worker
+  try {
+    await enqueueEvent({
+      event_id:  rawEvent.id,
+      source,
+      text,
+      timestamp: Date.now(),
+    });
+  } catch (err) {
+    console.error("[POST /api/events] Redis enqueue failed:", err);
+    return NextResponse.json(
+      { error: "Event logged but could not be queued — is Redis running?" },
+      { status: 503 }
+    );
+  }
 
-  // 3. Enqueue for async processing (carries DB id so worker can close the loop)
-  eventQueue.enqueue({ event_id: rawEvent.id, source, text, timestamp: Date.now() });
+  const queued = await queueLength().catch(() => -1);
 
   return NextResponse.json({
-    status: "event_received",
+    status:   "event_received",
     event_id: rawEvent.id,
-    queued: eventQueue.size,
+    queued,
   });
 }

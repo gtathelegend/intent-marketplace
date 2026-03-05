@@ -1,33 +1,105 @@
-import { eventQueue, QueuedEvent } from "@/src/lib/queue";
-import { generateAndStoreIntent } from "@/src/lib/intentEngine";
-import { markEventProcessed, markEventFailed } from "@/src/lib/db";
+/**
+ * Standalone Event Worker
+ *
+ * Run with:  npm run worker
+ *
+ * This process:
+ *  1. Connects to Redis and blocks on BRPOP ("device_events")
+ *  2. Calls the Groq LLM to extract structured intent from the raw text
+ *  3. Persists the intent to PostgreSQL (intents table)
+ *  4. Updates the originating event row to status = "processed"
+ *  5. Broadcasts the new intent to the Next.js server via Socket.IO
+ *     → Server fans it out to all browser Socket.IO clients
+ *     → Server also fires intentEmitter so SSE (SwipeDeck) is updated
+ *
+ * The worker continues running even when individual events fail.
+ */
+import "dotenv/config";
+import { dequeueEvent, publishIntent } from "@/src/lib/queue";
+import { extractIntent } from "@/src/lib/intent";
+import {
+  insertIntent,
+  markEventProcessed,
+  markEventFailed,
+} from "@/src/lib/db";
 
-async function processEvent(event: QueuedEvent): Promise<void> {
-  console.log(`[Worker] Processing event ${event.event_id} from "${event.source}"...`);
+// ---------------------------------------------------------------------------
+// Process a single event
+// ---------------------------------------------------------------------------
+async function processEvent(event: {
+  event_id: string;
+  source: string;
+  text: string;
+  timestamp: number;
+}): Promise<void> {
+  console.log(`[Worker] Event received:  ${event.event_id} | source="${event.source}"`);
+
   try {
-    const intent = await generateAndStoreIntent(event.source, event.text);
+    // ── Step 1: Extract intent via Groq ───────────────────────────────────
+    console.log("[Worker] Calling Groq...");
+    const extraction = await extractIntent(event.text);
+    console.log(`[Worker] Intent extracted: "${extraction.intent_summary}" (confidence=${extraction.confidence})`);
+
+    // ── Step 2: Persist intent to PostgreSQL ──────────────────────────────
+    const intent = await insertIntent({
+      source:           event.source,
+      source_text:      event.text,
+      intent_summary:   extraction.intent_summary,
+      possible_actions: extraction.possible_actions,
+      entities:         extraction.entities,
+      confidence:       extraction.confidence,
+      reasoning:        extraction.reasoning,
+    });
+    console.log(`[Worker] Intent saved:    ${intent.id}`);
+
+    // ── Step 3: Mark originating event as processed ───────────────────────
     await markEventProcessed(event.event_id, intent.id);
-    console.log(
-      `[Worker] Intent stored: ${intent.id} — "${intent.intent_summary}"`
-    );
+    console.log(`[Worker] Event marked processed`);
+
+    // ── Step 4: Publish to Redis pub/sub → Next.js server picks it up ────
+    await publishIntent(intent);
+    console.log(`[Worker] Published       → intents:new ${intent.id}`);
+
   } catch (err) {
     console.error("[Worker] Failed to process event:", err);
-    await markEventFailed(event.event_id).catch(() => {});
+    try {
+      await markEventFailed(event.event_id);
+    } catch (dbErr) {
+      console.error("[Worker] Could not mark event as failed:", dbErr);
+    }
   }
 }
 
-/**
- * Start the event-driven worker. Idempotent — safe to call multiple times;
- * only the first call registers the listener.
- */
+// ---------------------------------------------------------------------------
+// Main loop — polls Redis continuously
+// ---------------------------------------------------------------------------
+async function main(): Promise<void> {
+  console.log("[Worker] Worker started");
+  console.log(`[Worker] Listening on Redis queue "device_events"...`);
+
+  while (true) {
+    try {
+      const event = await dequeueEvent(1); // block up to 1 s per call
+
+      if (!event) {
+        // Timeout expired — no event in queue, loop back and wait again
+        continue;
+      }
+
+      // Process asynchronously so the dequeue loop is never blocked by Groq/DB
+      processEvent(event);
+
+    } catch (err) {
+      console.error("[Worker] Unexpected error in main loop:", err);
+      // Brief pause before retrying to avoid a tight crash loop
+      await new Promise((r) => setTimeout(r, 1_000));
+    }
+  }
+}
+
+main();
+
+// Export startWorker so instrumentation.ts still compiles without error
 export function startWorker(): void {
-  const g = globalThis as Record<string, unknown>;
-  if (g.__workerStarted) return;
-  g.__workerStarted = true;
-
-  eventQueue.on("enqueued", (event: QueuedEvent) => {
-    processEvent(event);
-  });
-
-  console.log("[Worker] Event worker is running");
+  // No-op — the standalone worker is started via `npm run worker`, not in-process.
 }

@@ -1,11 +1,9 @@
 /**
- * Next.js Instrumentation hook — runs once when the server process starts.
- * Use this to boot long-lived singletons like the event worker.
- * Docs: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
+ * Next.js Instrumentation hook.
+ *
+ * The event worker is now a standalone process started via `npm run worker`.
+ * This hook is intentionally a no-op — no in-process worker is needed.
  */
 export async function register() {
-  if (process.env.NEXT_RUNTIME === "nodejs") {
-    const { startWorker } = await import("./workers/eventWorker");
-    startWorker();
-  }
+  // Worker is standalone — see src/workers/eventWorker.ts and `npm run worker`
 }
