@@ -1,7 +1,2 @@
-{
-  "installCommand": "npm install --prefix intent-marketplace",
-  "buildCommand": "npm run build --prefix intent-marketplace",
-  "outputDirectory": "intent-marketplace/.next",
-  "framework": "nextjs"
-}
+{}
 
