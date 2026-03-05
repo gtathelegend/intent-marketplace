@@ -10,6 +10,7 @@
     "worker": "tsx src/workers/eventWorker.ts"
   },
   "dependencies": {
+    "@upstash/redis": "^1.36.3",
     "framer-motion": "^12.35.0",
     "googleapis": "^171.4.0",
     "groq-sdk": "^0.37.0",

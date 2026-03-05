@@ -1,4 +1,5 @@
 import SwipeDeck from "@/src/components/SwipeDeck";
+import EventSubmit from "@/src/components/EventSubmit";
 
 export default function IntentsPage() {
   return (
@@ -6,9 +7,10 @@ export default function IntentsPage() {
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold mb-2">Intent Feed</h1>
         <p className="text-slate-400 text-sm max-w-sm mx-auto">
-          Swipe right to execute an action, swipe left to dismiss.
+          Submit an event below and watch your intent card appear in real time.
         </p>
       </div>
+      <EventSubmit />
       <SwipeDeck />
     </main>
   );

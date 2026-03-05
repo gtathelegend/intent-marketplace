@@ -13,7 +13,6 @@ import { createServer } from "http";
 import { Server as SocketServer } from "socket.io";
 import next from "next";
 import { intentEmitter } from "./src/lib/intentEmitter";
-import { subscribeToIntents } from "./src/lib/queue";
 
 const dev  = process.env.NODE_ENV !== "production";
 const port = parseInt(process.env.PORT ?? "3000", 10);
@@ -76,25 +75,8 @@ async function main() {
     );
   });
 
-  /**
-   * Subscribe to the Redis "intents:new" pub/sub channel.
-   *
-   * The standalone worker publishes here after:
-   *   1. Dequeuing an event from Redis (BRPOP)
-   *   2. Calling Groq to extract the intent
-   *   3. Persisting the intent to PostgreSQL
-   *
-   * We fan the message out to two real-time channels:
-   *   a) Socket.IO → all connected browser clients ("new_intent" event)
-   *   b) SSE       → intentEmitter → GET /api/intents/stream → SwipeDeck
-   */
-  subscribeToIntents((raw) => {
-    const intent = raw as StoredIntentPayload;
-    const card   = toCard(intent);
-    console.log(`[Redis→Server] Broadcasting new intent: ${intent.id}`);
-    io.emit("new_intent", card);
-    intentEmitter.emit("new_intent", intent);
-  });
+  // Note: real-time intent delivery is handled via SSE DB-polling
+  // (GET /api/intents/stream). No Redis pub/sub subscriber needed here.
 
   httpServer.listen(port, () => {
     console.log(`\n> Next.js + Socket.IO ready on http://localhost:${port}`);

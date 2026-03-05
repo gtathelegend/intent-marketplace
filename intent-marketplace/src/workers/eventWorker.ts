@@ -15,7 +15,7 @@
  * The worker continues running even when individual events fail.
  */
 import "dotenv/config";
-import { dequeueEvent, publishIntent } from "@/src/lib/queue";
+import { dequeueEvent } from "@/src/lib/queue";
 import { extractIntent } from "@/src/lib/intent";
 import {
   insertIntent,
@@ -56,10 +56,6 @@ async function processEvent(event: {
     await markEventProcessed(event.event_id, intent.id);
     console.log(`[Worker] Event marked processed`);
 
-    // ── Step 4: Publish to Redis pub/sub → Next.js server picks it up ────
-    await publishIntent(intent);
-    console.log(`[Worker] Published       → intents:new ${intent.id}`);
-
   } catch (err) {
     console.error("[Worker] Failed to process event:", err);
     try {
@@ -79,10 +75,11 @@ async function main(): Promise<void> {
 
   while (true) {
     try {
-      const event = await dequeueEvent(1); // block up to 1 s per call
+      const event = await dequeueEvent();
 
       if (!event) {
-        // Timeout expired — no event in queue, loop back and wait again
+        // Queue empty — wait 1 s then poll again
+        await new Promise((r) => setTimeout(r, 1_000));
         continue;
       }
 
