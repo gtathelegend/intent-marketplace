@@ -1,33 +1,33 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/src/lib/db";
+import { NextResponse } from "next/server";
 
-/**
- * GET: Fetch all pending intents
- */
+// Mock intent cards — replace with real DB query once a database is connected.
+const MOCK_CARDS = [
+  {
+    id: "1",
+    intent_summary: "Meeting request from Alex regarding Q1 goals",
+    proposed_action: "Create calendar event for Friday 2 PM",
+    confidence: 0.91,
+    reasoning: "Alex is a frequent collaborator and 'Friday 2 PM' was explicitly mentioned.",
+    source: "Email",
+  },
+  {
+    id: "2",
+    intent_summary: "Professor emailed about study group",
+    proposed_action: "Schedule study session in Library",
+    confidence: 0.87,
+    reasoning: "The email mentions a need for a study session and the library is your usual location.",
+    source: "Gmail",
+  },
+  {
+    id: "3",
+    intent_summary: "Loose reminder: 'Buy milk soon'",
+    proposed_action: "Add 'Buy milk' to grocery list",
+    confidence: 0.55,
+    reasoning: "Detected a grocery item but the timeframe 'soon' is ambiguous.",
+    source: "Note",
+  },
+];
+
 export async function GET() {
-  try {
-    const result = await db.query(
-      `SELECT * FROM intents WHERE status = 'pending' ORDER BY created_at DESC`
-    );
-
-    // Map DB fields to UI-friendly structure if needed
-    const cards = result.rows.map(row => ({
-      id: row.id,
-      intent_summary: row.intent_summary,
-      proposed_action: Array.isArray(row.possible_actions) 
-        ? row.possible_actions[0] 
-        : (JSON.parse(row.possible_actions || '[]')[0] || "No suggested action"),
-      confidence: row.confidence,
-      reasoning: "Extracted from your source text.",
-      source: "Database", // You could store actual source in DB
-    }));
-
-    return NextResponse.json({ cards });
-  } catch (error: any) {
-    console.error("Fetch Intents Error:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({ cards: MOCK_CARDS });
 }

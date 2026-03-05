@@ -2,6 +2,7 @@ import { Pool, QueryResultRow } from 'pg';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: true },
 });
 
 export const db = {
@@ -39,7 +40,7 @@ export const db = {
 export default db;
 
 // ---------------------------------------------------------------------------
-// In-memory execution log (used when no real DB is configured)
+// Persistent execution log — writes to and reads from NeonDB.
 // ---------------------------------------------------------------------------
 
 export interface ExecutionLog {
@@ -52,21 +53,27 @@ export interface ExecutionLog {
   executed_at: string;
 }
 
-// Module-level store — persists for the lifetime of the dev server process.
-const executionStore: ExecutionLog[] = [];
-
-export async function logAction(data: Omit<ExecutionLog, "id" | "executed_at">): Promise<ExecutionLog> {
-  const entry: ExecutionLog = {
-    ...data,
-    id: Math.random().toString(36).substring(2, 9),
-    executed_at: new Date().toISOString(),
-  };
-  executionStore.unshift(entry); // newest first
-  console.log("[DB Log]", JSON.stringify(entry));
-  return entry;
+export async function logAction(
+  data: Omit<ExecutionLog, "id" | "executed_at">
+): Promise<ExecutionLog> {
+  const result = await db.findOne<ExecutionLog>(
+    `INSERT INTO executions (agent_name, intent_summary, status, result_message, source_text)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING *`,
+    [data.agent_name, data.intent_summary, data.status, data.result_message, data.source_text]
+  );
+  console.log("[DB Log] Saved execution:", result?.id);
+  return result!;
 }
 
-export function getExecutions(): ExecutionLog[] {
-  return executionStore;
+export async function getExecutions(): Promise<ExecutionLog[]> {
+  const result = await db.query<ExecutionLog>(
+    `SELECT id, agent_name, intent_summary, status, result_message, source_text,
+            executed_at::text AS executed_at
+     FROM executions
+     ORDER BY executed_at DESC
+     LIMIT 100`
+  );
+  return result.rows;
 }
 

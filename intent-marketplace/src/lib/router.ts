@@ -1,41 +1,61 @@
-import { db } from "@/src/lib/db";
 import { generateEmbedding } from "@/src/lib/embeddings";
 
-export interface Agent {
+export interface RoutingResult {
   agent_id: string;
   name: string;
-  description: string;
-  capabilities: string[];
-  score?: number;
+  score: number;
 }
 
-/**
- * Matches an intent summary to a list of agents based on pgvector similarity.
- */
+// Pre-defined agents — swap for a real DB lookup once pgvector is connected.
+const AGENT_CONFIGS = [
+  {
+    agent_id: "calendar-agent",
+    name: "Calendar Agent",
+    description: "Schedules meetings, manages calendar events, and checks availability across time zones.",
+  },
+  {
+    agent_id: "task-agent",
+    name: "Task Agent",
+    description: "Creates to-do lists, manages project tasks, sets deadlines, and tracks progress in productivity tools.",
+  },
+  {
+    agent_id: "research-agent",
+    name: "Research Agent",
+    description: "Performs web searches, summarizes long articles, finds specific data points, and compiles reports.",
+  },
+  {
+    agent_id: "email-agent",
+    name: "Email Agent",
+    description: "Drafts professional emails, organizes inboxes, filters spam, and sets up automated replies.",
+  },
+];
+
+function cosineSimilarity(a: number[], b: number[]): number {
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom === 0 ? 0 : dot / denom;
+}
+
 export async function matchIntentToAgents(
   intentSummary: string
-): Promise<Agent[]> {
-  // 1. Generate embedding for intent summary
+): Promise<RoutingResult[]> {
   const intentEmbedding = await generateEmbedding(intentSummary);
-  
-  // Format vector for pg: "[0.1, 0.2, ...]"
-  const vectorStr = `[${intentEmbedding.join(',')}]`;
 
-  // 2. Query agents table using cosine similarity (1 - (vector <=> vector))
-  // pgvector <=> is Euclidean distance, <=> 1 - cosine similarity
-  // Using cosine similarity (1 - (a <=> b)):
-  const result = await db.query<Agent & { score: number }>(
-    `SELECT 
-      agent_id, 
-      name, 
-      description, 
-      capabilities,
-      (1 - (embedding <=> $1)) as score
-     FROM agents
-     ORDER BY score DESC
-     LIMIT 3`,
-    [vectorStr]
+  const scored = await Promise.all(
+    AGENT_CONFIGS.map(async (agent) => {
+      const agentEmbedding = await generateEmbedding(agent.description);
+      return {
+        agent_id: agent.agent_id,
+        name: agent.name,
+        score: Math.max(0, cosineSimilarity(intentEmbedding, agentEmbedding)),
+      };
+    })
   );
 
-  return result.rows;
+  return scored.sort((a, b) => b.score - a.score).slice(0, 3);
 }

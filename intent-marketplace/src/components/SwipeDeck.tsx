@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
-import { RotateCcw, Check, X, Info, Zap, ArrowRight, AlertTriangle, ShieldCheck } from "lucide-react";
+import { RotateCcw, Check, X, Info, Zap, AlertTriangle, ShieldCheck } from "lucide-react";
 
 interface IntentCardData {
   id: string;
@@ -35,7 +35,7 @@ const SwipeCard = ({
     ["rgba(239, 68, 68, 0.1)", "rgba(15, 23, 42, 1)", "rgba(34, 197, 94, 0.1)"]
   );
 
-  const handleDragEnd = (_: any, info: any) => {
+  const handleDragEnd = (_: unknown, info: { offset: { x: number } }) => {
     if (isProcessing || showDoubleConfirm) return;
     if (info.offset.x > 100) onSwipe("right");
     else if (info.offset.x < -100) onSwipe("left");
@@ -69,7 +69,7 @@ const SwipeCard = ({
         </div>
         <div className="space-y-2">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Why this action?</p>
-          <p className="text-slate-400 text-sm italic leading-relaxed">"{data.reasoning}"</p>
+          <p className="text-slate-400 text-sm italic leading-relaxed">&ldquo;{data.reasoning}&rdquo;</p>
         </div>
       </div>
       <div className="mt-6">
@@ -145,12 +145,14 @@ export default function SwipeDeck() {
         // 1. Update status to approved
         await fetch(`/api/intents/${swipedCard.id}`, {
             method: "PATCH",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ status: "approved" }),
         });
 
         // 2. Route to best agent
         const routeRes = await fetch("/api/route-intent", {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ intent_summary: swipedCard.intent_summary }),
         });
         const { agents } = await routeRes.json();
@@ -161,12 +163,13 @@ export default function SwipeDeck() {
           // 3. Execute agent
           const executeRes = await fetch("/api/execute-agent", {
             method: "POST",
-            body: JSON.stringify({ intent_id: swipedCard.id, agent_id: bestAgent.agent_id }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agent_name: bestAgent.name, intent: swipedCard }),
           });
           const result = await executeRes.json();
           if (result.status === "success") showToast(result.message, "success");
         }
-      } catch (error) {
+      } catch {
         showToast("Failed to process action", "info");
       } finally {
         setIsProcessing(false);
@@ -176,6 +179,7 @@ export default function SwipeDeck() {
         try {
             await fetch(`/api/intents/${swipedCard.id}`, {
                 method: "PATCH",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status: "rejected" }),
             });
         } catch (e) {

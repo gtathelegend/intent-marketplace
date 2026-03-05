@@ -3,12 +3,11 @@ import { getExecutions } from "@/src/lib/db";
 
 /**
  * GET /api/executions
- * Returns in-memory execution logs (newest first).
- * When a real database is configured these can be swapped for pg queries.
+ * Returns execution logs from NeonDB (newest first, up to 100 rows).
  */
 export async function GET() {
   try {
-    const executions = getExecutions();
+    const executions = await getExecutions();
     return NextResponse.json({ executions });
   } catch (error: any) {
     console.error("[ExecutionsAPI] Error:", error);

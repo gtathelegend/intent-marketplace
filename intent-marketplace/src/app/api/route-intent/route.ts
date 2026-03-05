@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { matchIntentToAgents } from "@/src/lib/router";
 
-/**
- * POST: Match intent summary to best agents using vector similarity
- */
 export async function POST(req: NextRequest) {
   try {
     const { intent_summary } = await req.json();
@@ -15,19 +12,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Call Step 6 Vector Router
     const matches = await matchIntentToAgents(intent_summary);
 
-    // Format for UI
-    const response = {
+    return NextResponse.json({
       agents: matches.map((m) => ({
         agent_id: m.agent_id,
         name: m.name,
-        confidence: parseFloat(m.score?.toFixed(4) || '0'),
+        confidence: parseFloat(m.score.toFixed(4)),
       })),
-    };
-
-    return NextResponse.json(response);
+    });
   } catch (error: any) {
     console.error("Vector Routing Error:", error);
     return NextResponse.json(
